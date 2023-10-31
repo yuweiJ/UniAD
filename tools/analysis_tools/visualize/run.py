@@ -74,7 +74,9 @@ class Visualizer:
     def _parse_predictions_multitask_pkl(self, predroot):
 
         outputs = mmcv.load(predroot)
-        outputs = outputs['bbox_results']
+        print(f"pred output keys={outputs[0].keys()}, len={len(outputs)}")
+        # outputs = outputs['bbox_results']
+
         prediction_dict = dict()
         for k in range(len(outputs)):
             token = outputs[k]['token']
@@ -108,8 +110,12 @@ class Visualizer:
             track_velocity = bboxes.tensor.cpu().detach().numpy()[:, -2:]
 
             # trajectories
-            trajs = outputs[k][f'traj'].numpy()
-            traj_scores = outputs[k][f'traj_scores'].numpy()
+            if 'traj' in outputs[k] and 'traj_scores' in outputs[k]:
+                trajs = outputs[k][f'traj'].numpy()
+                traj_scores = outputs[k][f'traj_scores'].numpy()
+            else:
+                trajs = None
+                traj_scores = None
 
             predicted_agent_list = []
 
@@ -149,8 +155,8 @@ class Visualizer:
                         track_dims[i],
                         track_yaw[i],
                         track_velocity[i],
-                        trajs[i],
-                        traj_scores[i],
+                        trajs[i] if trajs else None,
+                        traj_scores[i] if traj_scores else None,
                         pred_track_id=track_id,
                         pred_occ_map=occ_map_cur,
                         past_pred_traj=None
@@ -251,8 +257,10 @@ class Visualizer:
         self.cam_render.render_image_data(sample_token, self.nusc)
         self.cam_render.render_pred_track_bbox(
             self.predictions[sample_token]['predicted_agent_list'], sample_token, self.nusc)
-        self.cam_render.render_pred_traj(
-            self.predictions[sample_token]['predicted_agent_list'], sample_token, self.nusc, render_sdc=self.with_planning)
+        if self.with_pred_traj:
+            self.cam_render.render_pred_traj(
+                self.predictions[sample_token]['predicted_agent_list'], sample_token, self.nusc,
+                render_sdc=self.with_planning)
         self.cam_render.save_fig(out_filename + '_cam.jpg')
 
     def combine(self, out_filename):
@@ -285,9 +293,9 @@ def main(args):
     render_cfg = dict(
         with_occ_map=False,
         with_map=False,
-        with_planning=True,
+        with_planning=args.with_planning,
         with_pred_box=True,
-        with_pred_traj=True,
+        with_pred_traj=args.with_pred_traj,
         show_gt_boxes=False,
         show_lidar=False,
         show_command=True,
@@ -334,5 +342,8 @@ if __name__ == '__main__':
     parser.add_argument('--out_folder', default='/mnt/nas20/yihan01.hu/tmp/viz/demo_test/', help='Output folder path')
     parser.add_argument('--demo_video', default='mini_val_final.avi', help='Demo video name')
     parser.add_argument('--project_to_cam', default=True, help='Project to cam (default: True)')
+    parser.add_argument('--with_planning', action='store_true', help='whether with planning')
+    parser.add_argument('--with_pred_traj', action='store_true', help='whether with prediction trajectories')
     args = parser.parse_args()
+    print(f"args={args}")
     main(args)
