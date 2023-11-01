@@ -74,8 +74,9 @@ class Visualizer:
     def _parse_predictions_multitask_pkl(self, predroot):
 
         outputs = mmcv.load(predroot)
-        print(f"pred output keys={outputs[0].keys()}, len={len(outputs)}")
-        # outputs = outputs['bbox_results']
+        print(f"pred original output keys={outputs.keys()}")
+        outputs = outputs['bbox_results']
+        print(f"pred output 0 keys={outputs[0].keys()}, len={len(outputs)}")
 
         prediction_dict = dict()
         for k in range(len(outputs)):
@@ -110,7 +111,7 @@ class Visualizer:
             track_velocity = bboxes.tensor.cpu().detach().numpy()[:, -2:]
 
             # trajectories
-            if 'traj' in outputs[k] and 'traj_scores' in outputs[k]:
+            if self.with_pred_traj:
                 trajs = outputs[k][f'traj'].numpy()
                 traj_scores = outputs[k][f'traj_scores'].numpy()
             else:
@@ -155,8 +156,8 @@ class Visualizer:
                         track_dims[i],
                         track_yaw[i],
                         track_velocity[i],
-                        trajs[i] if trajs else None,
-                        traj_scores[i] if traj_scores else None,
+                        trajs[i] if self.with_pred_traj else None,
+                        traj_scores[i] if self.with_pred_traj else None,
                         pred_track_id=track_id,
                         pred_occ_map=occ_map_cur,
                         past_pred_traj=None

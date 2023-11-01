@@ -37,7 +37,8 @@ def custom_encode_mask_results(mask_results):
                         dtype='uint8'))[0])  # encoded with RLE
     return [encoded_mask_results]
 
-def custom_multi_gpu_test(model, data_loader, tmpdir=None, gpu_collect=False):
+def custom_multi_gpu_test(model, data_loader, distributed=False,
+                          tmpdir=None, gpu_collect=False):
     """Test model with multiple gpus.
     This method tests model with multiple gpus and collects the results
     under two different modes: gpu and cpu modes. By setting 'gpu_collect=True'
@@ -145,19 +146,20 @@ def custom_multi_gpu_test(model, data_loader, tmpdir=None, gpu_collect=False):
                 prog_bar.update()
 
     # collect results from all ranks
-    if gpu_collect:
-        bbox_results = collect_results_gpu(bbox_results, len(dataset))
-        if have_mask:
-            mask_results = collect_results_gpu(mask_results, len(dataset))
+    if distributed:
+        if gpu_collect:
+            bbox_results = collect_results_gpu(bbox_results, len(dataset))
+            if have_mask:
+                mask_results = collect_results_gpu(mask_results, len(dataset))
+            else:
+                mask_results = None
         else:
-            mask_results = None
-    else:
-        bbox_results = collect_results_cpu(bbox_results, len(dataset), tmpdir)
-        tmpdir = tmpdir+'_mask' if tmpdir is not None else None
-        if have_mask:
-            mask_results = collect_results_cpu(mask_results, len(dataset), tmpdir)
-        else:
-            mask_results = None
+            bbox_results = collect_results_cpu(bbox_results, len(dataset), tmpdir)
+            tmpdir = tmpdir+'_mask' if tmpdir is not None else None
+            if have_mask:
+                mask_results = collect_results_cpu(mask_results, len(dataset), tmpdir)
+            else:
+                mask_results = None
 
     if eval_planning:
         planning_results = planning_metrics.compute()
