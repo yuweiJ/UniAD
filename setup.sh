@@ -10,6 +10,7 @@ conda install cudatoolkit=11.1.1 -c conda-forge
 # We use cuda-11.1 by default
 pip install torch==1.9.1+cu111 torchvision==0.10.1+cu111 torchaudio==0.9.1 -f https://download.pytorch.org/whl/torch_stable.html
 # Recommended torch>=1.9
+pip install yapf==0.40.1
 
 ## If gcc is not installed:
 # conda install -c omgarcia gcc-6 # gcc-6.2
